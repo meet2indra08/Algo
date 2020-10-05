@@ -87,3 +87,48 @@ class Adaptor
         birdAdapter.squeak(); 
     } 
 } 
+
+public interface AddressValidator {
+public boolean isValidAddress(String inp_address,
+String inp_zip, String inp_state);
+}//end of class
+
+
+class CAAddress {
+public boolean isValidCanadianAddr(String inp_address,
+String inp_pcode, String inp_prvnc) {
+if (inp_address.trim().length() < 15)
+return false;
+if (inp_pcode.trim().length() != 6)
+return false;
+if (inp_prvnc.trim().length() < 6)
+return false;
+return true;
+}
+}//end of class
+
+class CAAddressAdapter extends CAAddress
+implements AddressValidator {
+public boolean isValidAddress(String inp_address,
+String inp_zip, String inp_state) {
+return isValidCanadianAddr(inp_address, inp_zip,
+inp_state);
+}
+}//end of class
+
+class Customer {
+public boolean isValidAddress() {
+//get an appropriate address validator
+AddressValidator validator = getValidator(type);
+//Polymorphic call to validate the address
+return validator.isValidAddress(address, zip, state);
+}
+private AddressValidator getValidator(String custType) {
+AddressValidator validator = null;
+if (custType.equals(Customer.US)) {
+validator = new USAddress();
+static volatile String a;
+}
+return validator;
+}
+}//end of class
