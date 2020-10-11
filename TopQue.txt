@@ -1,0 +1,117 @@
+==================================================================================
+Kafka
+==================================================================================
+Message broker and queues:
+Has subscribed and published messages over brokers and worked on Queues/Topics
+Understands durable subscription , Correlation IDs and event schema
+Understands AMQP/MQTT/JMS standards  and applicability"
+Used Kafka StreamsAPI or 3rd party APIs with messaging
+Configured and worked with Message brokers like MQ/ Kafka/Cloud based brokers etc
+Business scenario for using messaging  and multi tenancy"
+Kafka- Complete Tutorial 
+Kafka Installation
+Kafka StreamsAPI
+Understands durable subscription
+Correlation IDs and event schema
+Kafka JMS principle and guideline/Understands AMQP/MQTT/JMS standards  and applicability
+Used Kafka StreamsAPI or 3rd party APIs with messaging
+Configured and worked with Message brokers like MQ/ Kafka/Cloud based brokers etc
+Business scenario for using messaging  and multi tenancy"
+Kafka Interview Questions
+How to recover messages
+Retention policy configuration
+Producer and consumer assign to a perticular frame 
+ingest pipeline 
+Multitenancy in kafka 
+Kafka Stream API
+https://github.com/fernandoBRS/microservices-transactions
+=============================================================================
+Multi-threading
+=============================================================================
+Own annotation 
+Cash Compare and swap algorithm for automic implementation
+Multi-threading:
+Synchronization, sleep, wait, notify, notifyAll
+DeadLock, Runnable, fork and join
+Basic understanding of:Executor Framework
+Concept of Callable and Future"
+ExecutorService interface, Thread Local, Volatile
+Concurrent collections : BlockingQueue, ConcurrentMap,Latch, Barrier
+ReentrantLock and Condition interface"
+Comparable future
+Automic internal Working 
+Can we do thread safe without synchronize 
+Semaphore
+============================================================================== 
+Microservices:
+==============================================================================
+Understanding of choreography scenarios through user Journey
+Able to demonstrate Implemention approach and relation with Saga
+Understanding of Orchestration scenarios through user Journey
+Event sourcing in CQRS
+Multiple Database CQRS with CQRS"
+API Publishing, Pros and cons"
+Able to demonstrate Implemention approach
+Event Handlers
+Differentiate with Command Pattern
+Define bounded Context and Implementations
+Aggregates & Domain Services
+DB selection strategy"
+API Gateway Architecture
+API Gateway Policies
+Circuit Breaker /Fault Tolreance
+Key Business scenarios for API Collaboration"
+Can define OAuth2.0 flows for various grant types
+Aware of grant types(Client crdential, password,implicit, Authcode)
+Aware of JWT and  Verification process
+Exposed to Open IDC flow"
+Design Pattern of every layer of microservices like API gateway, cercuit breaker etc
+Complete Transaction management 
+Cache Management(redis Cache)
+Spring Secuirity Authentication Internal How Authentication services works 
+====================================================================
+Cloud Services(DevOps)
+====================================================================
+Strong Technical knowledge in AWS cloud administration, provisioning and managing services like EC2, S3, DynamoDB, ELB (Load Balancers), VPC, SNS, SQS, KMS, EMR, Lambda, IAM, Kinesis, ACM, ROUTE 53, Auto Scaling, CloudWatch, SSM, CloudTrail, Security Groups, and integration into shared services like Ping authentication, Vault secrets manager, etc.
+Operating Systems: Windows and Linux system administration.
+Strong scripting (e.g. Python, Terraform, Jenkins, JSON, etc.) with deep Infrastructure As Code (IAC) automation background
+Experience with AWS security, network, and operational tools and best practices
+Should have Good communication, analytical and problem-solving skills.
+Should be able to write effective, scalable code
+Experience in CI/CD using Jenkins etc.
+Experience in Orchestration tools like Chef/Ansible
+Experience in Terraform for managing large scale cloud deployments (advanced skills)
+=====================================================================
+Complete
+=====================================================================
+1) Oops & Design Principles and Design Patterns:
+a.Prepare around encapsulation, Abstraction, polymorphism, inheritance, low coupling, high cohesion, open closed principles, inversion of control etc.
+b.Should know very well abt GOF design pattern such as builder, decorator, singleton, factory etc. OOad, solid principles and J2ee patterns like intercepting filter, front controller etc.
+2)Problem solving:
+a.Heapsort, searching, hashing, graph, mapreduce and caching algorithms
+3)Core Java:
+a.Fundamentals: IO Package, Buffered streams, Cloning (deep vs Shallow), serializations, various classes (immutable, anonymous, abstract, generic etc.)
+b. Collections: Internal working of Tree set, hashmap, Hastable, concurrent hashmap, blockingqueue, priorityqueue etc., equals & hashcode contract, faisafe & failfast iterators, comparable/comparator.
+c.Multithreading: steps of multithreading, deep understanding, JMM, thread state, Deadlock, reentrantlock runnable, executor framework, thread pool, fork/join latch barrier.
+d.JMM: Garbag collection,  heap structure etc., full/partial/parallel GC, class loading, JVN config
+e.Java 8 features: Lambda expressions,  Steams, functional interfaces, Completable future, generics, lazy streams, parallel and serial streams
+f.Java 9 features (what are the new features as compare with Java 8)
+4)Databases:
+a.Any RDBMS or NoSql- able to write sql queries using innerjoins, outerjoins, aggregate functions, groupby, having clause, JDBC concept, tables, query tuning, indexes, one to many. Many to many, database modeling
+5)Othe skills:
+a.Active MQ, RabbitMQ/Kafka: Working knowledge/functioning, JMS concept & component, annotiations, xquery, xpath
+b.Spring rest Web services: HTTP, rest principal, annotations, MVC, rest API development
+d.Spring core and boot: AOP, IoC, Bean cycle, autobean wiring, DI, spring config files
+e.Hibernate/JPA: CRUD operation, 1st, 2nd level caching,
+7)Monitorig and auditing tools: ELK Stack, grafana, splunk, Redis, graphite, filebeat, sentry etc. working knowledge/functioning-How to setup kibana dashboard
+8)Logging framework: Log4j, SLF4j, logging level in java.
+9)JUnit and Mockito- Unit testing controllers, key annotations, test suites, powermock, mocking
+10)Build & Release tools: Maven, gradle/Jenkins, ci/cd practices
+11)Performance testing; Application and srver profiling, tuning, monitoring, tools like- Jprofiler, Jmeter, Jconsole, loadrunner, jvisual
+12)Basics of Unix scripting/commances: knows writing script to manage file system, editing files, transferring data, exp with perl/shell/bash etc
+13) Microservices:
+Orchestration Patterns, Choreography Patterns and Command Pattern in Microservices, Bounded Context, Domain model(Fat Domain , Aneamic Domain),Transaction (Cancel, Rollback, compensating), CQRS Patterns (Database. Choice of DB, stratgy to apply) and Event sourcing in Microservices, Integration Patterns , Enterprise Service Bus and  API Gateway Architecture (API Layering and purposes, experience with one), Application/API Security (Authentication ,Authorization, grant types, JWT ), IAM Integration, API Gateways.
+14) Devops(CI/CD: Maven/Gradle, Jenkins, Quality plugins, Docker and containersization)                                
+15) Cloud experience- Deployment or Development or Provision using Terraform/ORM, Any cloud service will do         
+16) Rest Principles, Open API spec, Hateos,versioning, pagination, fine grain vs Coarse grain APIs in business & backend context
+ ================================================================================================================================
