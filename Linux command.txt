@@ -1,0 +1,91 @@
+﻿cat "Find file directory command:./findfile.bash 'filename' 
+=========================================
+CAT Command
+=========================================
+Use Cat Command with More & Less Options: 
+# cat song.txt | more
+# cat song.txt | less
+Display Line Numbers in File
+# cat -n song.txt
+Display $ at the End of File
+# cat -e test
+Display Multiple Files at Once
+Use Standard Output with Redirection Operator
+# cat test > test1
+
+cat -v filename - Check special charater in files.
+FindFile :: find . -name "filename"
+
+GREP
+Find meter serial number in file
+#GREP "3011928373" dzcom_1929828292
+#GREP --color "3011928373" com_1929828292
+#GREP -n --color "3011928373" com_1929828292  - n line number
+#GREP -i --color "3011928373" com_1929828292  - Search for case sensitive 
+#grep -r "jdj" file - recursively find files.
+#GREP "30GRE11928373" *.html
+
+
+Copy and rename file 
+cp -p file1  file1orginal
+
+find . -name server.log
+ls *filenamegrep 
+
+ps -fuse fuse 
+ip a - Find out ip for server
+
+
+
+
+
+#dzdo su - fuse
+#cp -p filename newfilename - Copy
+#executing jstat you need to know the process id of the application, you can get it easily using 
+  ps -eaf | grep java
+
+  
+Apache::
+Using this() in  
+
+===============
+Read File split
+================
+ZIP, UNZIP and SPLIT the large files 
+
+1.	Login into Thames VDI Profile.
+2.	Open Putty and enter the SIT Environment of Hostname or IP address
+3.	Login with your Service account in SIT Environment
+4.	Go to path BSS/app/swm/dropzone/rni/sit/in/data/processed
+5.	In this path you can find the meter read report files
+6.	Copy that file to tmp folder
+7.	Why I mentioned tmp folder because getting permission denied in BSS/app/swm/dropzone/rni/sit/in/data/processed in this path.
+
+8.	Once you copied the file to tmp folder use below command in the same folder
+9.	ZIP the File:
+10.	Zip XYZ.zip XYZ and press enter
+12.	UNZIP the file:
+14.	Unzip XYZ.zip and press enter
+16.	SPLIT the FILE:
+Go to tmp path and enter this command
+Split xyz.csv or xyz.txt and press enter
+Now the file will convert into to files like xaa and xbb
+For example, if the file has large lines like 1000 lines, if you want convert to split the file use below commands
+Split files with customize line numbers (-l)
+Let’s suppose we want to split a file with customize line numbers, let say I want max 200 lines per file.
+To achieve this, use  ‘-l’ option in split command.
+split -l200 xyz.txt --verbose
+creating file ‘xaa’
+creating file ‘xab’
+creating file ‘xac’
+creating file ‘xad’
+creating file ‘xae’
+
+
+============================================================================
+Logs:::
+
+Server:::
+cd /u01
+
+

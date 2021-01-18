@@ -1,0 +1,970 @@
+-- find all Commissioning reports processed by the system
+select ji.job_instance_id, jf.file_name, ji.status_desc, ji.entry_date from job_instance  ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+where jf.file_name like 'po%'
+order by ji.entry_date desc
+
+________________________________________
+
+-- view all error logs for a given job instance id
+select * from task_instance_error_log where task_id in (select task_instance_id from task_instance where job_instance_id = 150016) order by exception_data
+
+________________________________________
+
+-- view the pairing SWM-LCE by given list of SWM serial numbers
+select swm.meter_serial_number, swm.latest_reading_date, swm.previous_meter_serial_number, swm.status_desc, lce.radio_serial_number, lce.previous_radio_serial_number, lce.status_desc, swm.lce_id from smart_water_meter swm
+left join local_communication_endpoint lce
+on swm.lce_id = lce.lce_id
+where swm.meter_serial_number in ('310561951')
+
+________________________________________
+
+-- view the pairing LCE-SWM by given list of LCE serial numbers
+select swm.meter_serial_number, swm.latest_reading_date, swm.previous_meter_serial_number, swm.status_desc, lce.radio_serial_number, lce.previous_radio_serial_number, lce.status_desc from local_communication_endpoint lce
+join smart_water_meter swm
+on lce.lce_id = swm.lce_id
+where lce.radio_serial_number in ('14515020','14485891','14525125')
+
+--Sum reading Analysis
+select meter_serial_number from smart_water_meter swm
+join sum_readin_date srd
+on srd.swm_id = swm.swm_id
+where curr_mode = 'AMI'
+and status_desc = 'Active'
+
+________________________________________
+
+select swm.meter_serial_number, swm.status_desc, swm.curr_mode, ish.entry_date as commissioned_date from smart_water_meter swm
+join item_status_history ish
+on ish.swm_id = swm.swm_id
+where swm.curr_mode  = 'AMR' and ish.new_value = 'Commissioned'
+________________________________________
+
+select swm.meter_serial_number, swm.status_desc, swm.curr_mode,ish.new_value, ish.entry_date as commissioned_date from smart_water_meter swm
+join item_status_history ish
+on ish.swm_id = swm.swm_id
+where swm.curr_mode = 'AMR' and ish.new_value = 'Commissioned'
+and ((Select count(1) from item_status_history where swm.swm_id = item_status_history.swm_id and  item_status_history.new_value = 'Commissioned') > 1)
+
+________________________________________
+-- view all jobs for the last 24 hours
+select ji.job_instance_id, jf.file_name, ji.status_desc, ji.entry_date from job_instance  ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+where ji.entry_date > (NOW() -  interval '1 days')
+order by ji.entry_date desc
+
+________________________________________
+-- view all jobs with errors
+select ji.job_instance_id, jf.file_name, ji.status_desc, ji.entry_date from job_instance  ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+where ji.status_desc like '%SLA%'
+order by ji.entry_date desc
+
+________________________________________
+-- view all jobs for the last 24 hours including error count 
+select ji.job_instance_id, jf.file_name, ji.job_name, ji.status_desc, jf.processed, ji.entry_date, 
+(select count(*) from task_instance_error_log where task_id in (select task_instance_id from task_instance where job_instance_id = ji.job_instance_id)) as err_cnt 
+from job_instance  ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+where ji.entry_date > (NOW() -  interval '1 days')
+order by ji.entry_date desc
+
+________________________________________
+--LCE paired on >1 SWM
+select swm.meter_serial_number, lce.radio_serial_number, swm.curr_mode, swm.status_desc from smart_water_meter swm
+join local_communication_endpoint lce
+on swm.lce_id = lce.lce_id
+where swm.lce_id in (select distinct (lce_id) from smart_water_meter group by lce_id having count(lce_id) > 1)
+order by lce.radio_serial_number
+
+________________________________________
+
+select swm.meter_serial_number, lce.radio_serial_number, swm.status_desc, swm.curr_mode, swm.postcode, pc.postcode, pc.server_1, pc.server_2 from smart_water_meter swm
+join local_communication_endpoint lce
+on lce.lce_id = swm.lce_id
+join postcode_coverage pc
+on pc.postcode = swm.postcode 
+where swm.meter_serial_number in ('310017739')
+
+________________________________________
+
+select * from task_instance_error_log 
+where 
+exception_data != 'All values of this reading are a duplicate.'
+and
+exception_data not like 'Exception occurred during execution on the exchange: %'
+and
+task_id in (select task_instance_id from task_instance where job_instance_id = 11344) 
+order by exception_data
+
+________________________________________
+
+select meter_serial_number, latest_reading_date, postcode from smart_water_meter where 
+latest_reading_date < (NOW() - interval '7 days');
+
+
+________________________________________
+
+-- successfully processed ASN files
+select ji.job_instance_id, jf.file_name, ji.status_desc , jf.processed, ji.entry_date, 
+(select count(*) from task_instance_error_log where task_id in (select task_instance_id from task_instance where job_instance_id = ji.job_instance_id)) as err_cnt
+from job_instance  ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+where jf.file_name like 'A-T-%'
+and status_desc = 'Done'
+order by ji.entry_date desc
+
+________________________________________
+
+-- ASNs that never got processed successfully
+select ji.job_instance_id, jf.file_name, ji.status_desc , jf.processed, ji.entry_date, 
+(select count(*) from task_instance_error_log where task_id in (select task_instance_id from task_instance where job_instance_id = ji.job_instance_id)) as err_cnt
+from job_instance  ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+where jf.file_name like 'A-T-%'
+and status_desc != 'Done'
+
+and file_name not in (select jf.file_name
+from job_instance  ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+where jf.file_name like 'A-T-%'
+and status_desc = 'Done'
+)
+
+order by ji.entry_date desc
+
+________________________________________
+
+-- view item status history by a give meter serial number
+select 
+(select meter_serial_number from smart_water_meter where swm_id = ish.swm_id),
+(select radio_serial_number from local_communication_endpoint where lce_id = ish.lce_id), 
+ish.entry_date, 
+ish.created_by, 
+ish.field_name,
+ish.old_value,
+ish.new_value,
+ti.entry_date as "task_entry_date"
+from item_status_history ish
+left join task_instance ti
+on ish.task_id = ti.task_instance_id
+where swm_id = (select swm_id from smart_water_meter where meter_serial_number = '310067066')
+order by ish.entry_date desc
+
+________________________________________
+
+--Gets the number of AMI meters at a particular date
+do $$
+DECLARE total_ami integer;
+BEGIN
+
+
+CREATE TEMP TABLE max_mode_at_date AS
+(Select m.swm_id, m.new_value, t.item_status_id 
+FROM (SELECT swm_id, MAX(item_status_id) as item_status_id 
+FROM v_swm_mode_history
+WHERE entry_date <= '2016-05-31' -- change this date as required
+GROUP BY swm_id) t 
+JOIN item_status_history m on m.swm_id = t.swm_id and m.item_status_id = t.item_status_id)
+;
+
+
+--Get total ami
+select count(1) from max_mode_at_date where new_value = 'AMI' into total_ami;
+
+RAISE NOTICE 'Number of AMI = %', total_ami;
+
+DROP TABLE max_mode_at_date;
+
+END$$;
+
+________________________________________
+-- Get commissioning filename of particular meter
+select file_name from job_file jf
+join job_instance ji on ji.job_file_id = jf.job_file_id
+join task_instance ti on ti.job_instance_id = ji.job_instance_id
+join item_status_history ish on ish.task_id = ti.task_instance_id
+join smart_water_meter swm on swm.swm_id = ish.swm_id
+and swm.meter_serial_number like '3102008%'
+and ish.new_value = 'Commissioned'
+
+________________________________________
+-- Get all meters within a file
+select meter_serial_number from smart_water_meter swm 
+join item_status_history ish on swm.swm_id = ish.swm_id
+join task_instance ti on ish.task_id = ti.task_instance_id
+join job_instance ji on ti.job_instance_id = ji.job_instance_id
+join job_file jf on ji.job_file_id = jf.job_file_id
+where file_name = 'COMM_20160909061632.csv'
+
+-- view the pairing Job Name/JobInstance
+select jf.job_file_id, jf.file_name, ji.job_name from job_file jf
+join job_instance ji
+on jf.job_file_id = ji.job_file_id
+
+select * from job_instance limit 10;
+--Recent Un-processed Scheduled jobs
+select * from job_instance
+where status_desc != 'ddddError, SLA'
+--and job_name = 'import-sensus-purchase-order'
+order by proposed_date desc
+
+-- view all error logs for a given job instance id for AMRAD Errors rather than warnings
+select * from task_instance_error_log where task_id in (select task_instance_id from task_instance where job_instance_id = 50238) 
+and exception_data not like 'Meter IS in AMI mode, address excluded.'
+order by exception_data
+
+--ASN to SWM Pairings
+select asn.serial_number, swm.meter_serial_number from asn_item asn
+left join smart_water_meter swm
+on asn.serial_number = swm.meter_serial_number
+where serial_number in ('310320993','310320986','310320934','310320928','310320927','310320925','310320920','310319852','310319782','310317442','310317293','310317078','310317076','310317010','310317007','310316925','310316924','310316293','310315791','310302369','310302365','310301658','310299955','310298633','310298223','310290295','310289371','310287714','310287580','310287513','310287386','310283119','310282933','310282931','310280060','310280032','310277822','310277818','310277274','310276196','310274653','310264819','310264818','310262021','310261897','310260396','310260383','310259421','310259412','310259287','310256066','310255981','310255973','310255941','310255938','310255935','310255933','310255932','310255909','310255908','310255907','310255905','310255904','310255903','310255902','310255885','310255882','310247677','310247628','310247352','310247098','310246944','310241883','310241213','310239636','310238101','310238017','310233003','310232475','310232337','310223891','310217868','310217864','310208690','310207890','310207883','310207722','310207562','310207554','310207013','310205720','310205708','310205705','310205648','310205524','310205394','310204545','310204542','310204363','310204341','310204339','310203455','310203329','310203132','310202435','310201326','310200566','310200562','310200561','310198510','310198326','310198277','310197792','310195619','310195583','310195554','310195551','310195424','310195422','310195328','310193764','310193753','310186857','310185961','310184927','310184910','310184862','310181928','310181927','310174654','310165378','310158237','310157106','310156673','310156666','310143622','310139724','310132539','310121080','310121073','310121070','310107577','310087568','310064801','310056754','310036375','310031658','310019090','310017739','310017012','16154323 ','310251255','310186857')
+order by serial_number
+
+--OOS meters that shouldn't be
+select postcode, count (*) from (
+select swm.meter_serial_number, lce.radio_serial_number, swm.status_desc, swm.latest_reading_date, swm.curr_mode, swm.postcode as SWM_POSTCODE, pc.postcode as POSTCODE, pc.server_1, pc.server_2 from smart_water_meter swm
+join local_communication_endpoint lce
+on lce.lce_id = swm.lce_id
+left join postcode_coverage pc
+on pc.postcode = swm.postcode 
+where swm.curr_mode != 'Out of Scope'
+and (server_1 like 'Null%'
+and server_2 like 'Null%')) as temp_table
+group by postcode
+order by postcode
+
+-- view Unique error types by 
+select distinct exception_data from task_instance_error_log where task_id in (select task_instance_id from task_instance where job_instance_id = 51533) 
+and exception_data not like 'propertyName%'
+order by exception_data
+
+--Monthly KPI reading sum check
+select entry_date, count(1), SUM (reading_count), SUM (reading_target) from sum_reading_date 
+where date_trunc('month',entry_date) = date_trunc('month',(now() - interval '1 month'))
+group by entry_date
+order by entry_date desc
+
+--Monthly KPI reading sum check Active Only
+select entry_date, count(1), SUM (reading_count), SUM (reading_target) from sum_reading_date srd 
+join smart_water_meter swm
+on swm.swm_id = srd.swm_id
+where (date_trunc('month',entry_date) = date_trunc('month',(now() - interval '1 month'))
+and swm.status_desc = 'Active')
+group by entry_date
+order by entry_date desc
+
+--Monthly KPI reading sum check with TGB
+select srd.entry_date, count(1), MIN (srd.reading_count), SUM (srd.reading_count), SUM (srd.reading_target), pc.server_1 from sum_reading_date srd
+join smart_water_meter swm
+on swm.swm_id = srd.swm_id
+join postcode_coverage pc
+on pc.postcode = swm.postcode
+where (date_trunc('month',srd.entry_date) = date_trunc('month',(now() - interval '0 month')))
+--and srd.reading_count != 24)
+group by srd.entry_date, pc.server_1
+order by srd.entry_date desc
+
+--Create Commissioning file with current EPDB data
+
+select 'PUPD' as job_type,
+null as OLD_MTR_SN,
+swm.meter_serial_number as MTR_SN,
+lce.radio_serial_number as LCE_SN,
+null as OLD_MTR_SN,
+'20170313' as INST_DATE,--Needs amendment
+swm.postcode as POSTCODE,
+trim(ilt.short_desc) as LOCATION,
+trim(plt.short_desc) as PITLID,
+swm.gps_long as GPS_LONG,
+swm.gps_lat as GPS_LAT
+from smart_water_meter swm
+left outer join local_communication_endpoint lce on swm.lce_id = lce.lce_id
+left outer join installation_location_type ilt on swm.installation_location_type_id = ilt.installation_location_type_id
+left outer join pit_lid_type plt on swm.pit_lid_type_id = plt.pit_lid_type_id
+where meter_serial_number in ('310068252') 
+order by swm.meter_serial_number;
+
+--Meters failing provision of 24 readinsg in previous month
+select swm.meter_serial_number, lce.radio_serial_number, swm.postcode, srd.entry_date, srd.reading_count, pc.server_1, pc.server_2 from sum_reading_date srd
+join smart_water_meter swm
+on swm.swm_id = srd.swm_id
+join local_communication_endpoint lce
+on swm.lce_id = lce.lce_id
+join postcode_coverage pc
+on pc.postcode = swm.postcode 
+where reading_count < 24
+and srd.entry_date between '2017-11-01' and '2017-11-30'
+order by srd.entry_date desc
+
+--Views ASN Items per PO
+select asn.serial_number, asn.status_desc, asn.part_number, adv.delivery_note, adv.po_number from advanced_shipment_notification adv
+left join asn_item asn
+on adv.advanced_shipment_notification_id = asn.advanced_shipment_notification_id
+where po_number in ('3505783298')
+order by delivery_note
+
+--Non commissioned Meters
+
+join part_catalogue pc
+on asn.part_number = pc.part_number
+where part_type = 'SWM'
+--446,710
+
+select count (*) from smart_water_meter 
+--166,538
+
+--PO's and Delivery Notes per Item
+select asn.serial_number, adv.po_number, adv.delivery_note from asn_item asn
+join advanced_shipment_notification adv
+on adv.advanced_shipment_notification_id = asn.advanced_shipment_notification_id
+where serial_number in ('310859276','310859277','310859278','310859279','310859280','310859281','310859282','310859283','310859284','310859285','310859286','310859287','310859288','310859289','310859290','310859291','310859292','310859293','310859294','310859295','310859425')
+
+
+--PO's and Delivery Notes on system
+select swm.meter_serial_number, lce.radio_serial_number, adv.po_number, adv.delivery_note from asn_item asn
+join advanced_shipment_notification adv
+on adv.advanced_shipment_notification_id = asn.advanced_shipment_notification_id
+join smart_water_meter swm
+on swm.meter_serial_number = asn.serial_number
+left join local_communication_endpoint lce
+on swm.lce_id = lce.lce_id
+
+--Unique Read Errors for a period
+select distinct (tiel.exception_data)
+from job_instance  ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+join task_instance ti
+on ji.job_instance_id = ti.job_instance_id
+join task_instance_error_log tiel
+on ti.task_instance_id = tiel.task_id
+where ji.entry_date > (NOW() -  interval '7 days')
+and file_name like ('%Read%')
+and tiel.exception_data not like ('propertyName=receiverCustomerId, invalidValue=RepId:%')
+
+--PO's with cancellation requests that have failed
+select distinct (file_name), ji.entry_date
+from job_instance  ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+join task_instance ti
+on ji.job_instance_id = ti.job_instance_id
+join task_instance_error_log tiel
+on ti.task_instance_id = tiel.task_id
+where ji.entry_date > (NOW() -  interval '30 days')
+and file_name like ('po%csv%')
+and tiel.exception_data like ('The SPO cannot be deleted due to existing ASN.%')
+
+--Non commissioned CUFIS Meters
+select DISTINCT split_part(payload_data, ',', 3) MSN from task_instance_error_log 
+where task_id in (select task_instance_id from task_instance where job_instance_id = '62813')
+and exception_data = 'Meter SN not found in SWM table.'
+
+--Items on a task
+select swm.meter_serial_number, ish.created_by from item_status_history ish
+left join task_instance ti
+on ish.task_id = ti.task_instance_id
+join smart_water_meter swm
+on swm.swm_id = ish.swm_id
+where ish.created_by = 'INST Load, Task 161553'
+
+--MIN & MAX Reading Dates
+SELECT  MIN(entry_date), MAX(entry_date) max FROM reading
+where radio_serial_number in ('14205881')
+group by radio_serial_number
+order by radio_serial_number
+
+--Non missing LCE/MSN CUFIS
+select * from task_instance_error_log where task_id in 
+(select task_instance_id from task_instance where job_instance_id = 67322 
+and exception_data != 'Meter SN not found in SWM table.'
+and exception_data != 'RADIO ID was not found in ASN ITEM pool.')
+order by exception_data
+
+--Non CUFIS CUFIS Reads Cleanup
+select * from reading_04_10_17 read
+join smart_water_meter swm
+on read.swm_id = swm.swm_id
+where read.mode = 'CUFIS'
+and swm.curr_mode != 'CUFIS'
+
+delete from reading_29_09_17
+where reading_id in ('1204253834','1204253835','1204253836')
+
+--Create connection mode report
+--MTR_SN,LCE_SN,AMI_DT,STATUS
+select swm.meter_serial_number, lce.radio_serial_number, MIN (ti.entry_date), swm.curr_mode from smart_water_meter swm
+left join local_communication_endpoint lce
+on swm.lce_id = lce.lce_id
+left join item_status_history ish
+on swm.swm_id = ish.swm_id
+left join task_instance ti
+on ish.task_id = ti.task_instance_id
+where swm.meter_serial_number in ('310036977','310301417','310013041','310036948','310036987','310037171','310061688','310084437','310098417','310105116','310107297','310188519','310247006','310256632','310274297','310298400','310298845','310312328','310312727','310316919','310318040','310322566','310331694','310333707','310334789','310336661','310339128','310339197','310339568','310342616','310350508','310350510','310350529','310350537','310351030','310351521','310351656','310351715','310351804','310352006','310352013','310352129','310352164','310352187','310352525','310353657','310353660','310354287','310359834','310361292','310362193','310363013','310363695','310363697','310363771','310363792','310364452','310364569','310367778','310369807','310371349','310372314','310372372','310374302','310374308','310375143','310375533','310376512','310376834','310377129','310377479','310377485','310378927','310381156','310385221','310385791','310386328','310388363','310388504','310388886','310389603','310389816','310393662','310393671','310393933','310394023','310395568','310395651','310399824','310399835','310400157','310400159','310400160','310400164','310400166','310401136','310401386','310401387','310403695','310404548','310405405','310409431','310412410','310412703','310428471','310428473','310428479','310428598','310404675','310408279','310415126','310341583','310412347','310395707','310405237','310399017','310404500','310388911','310408182','310409049','310412962','310352677','310345492','310340410','310330495','310330502','310350864','310375607','310351748','310413030','310353603','310404787','310353301','310412352','310412361','310412358','310412210','310408339','310408275','310310522','310409061','310408941','310407837','310419557','310252082','310350039','310351711','310415353','310415358','310339858','310315730','310414127','310326629','310326574','310332606','310374573','310371473','310361442','310412301','310412287','310408377','310404503','310413228','310404502','310419552','310399085','310414122','310399024','310332794','310347178','310351700','310399016','310404420','310413217','310324845','310341590','310372241','310411047','310408178','310244309','310350012','310372031','310407873','310416591','310332483','310333217','310405229','310330679','310334730','310359831','310408515','310332423','310400640','310373503','310366942','310394018','310351109','310377446','310354233','310332477')
+and ish.new_value = 'AMI'
+group by swm.meter_serial_number, lce.radio_serial_number, ti.entry_date, swm.curr_mode
+
+--OOS LCE's
+select swm.meter_serial_number, lce.radio_serial_number, swm.curr_mode, pc.server_1, pc.server_2 from local_communication_endpoint lce
+join smart_water_meter swm
+on lce.lce_id = swm.lce_id
+INNER JOIN postcode_coverage as pc 
+ON swm.postcode = pc.postcode
+where curr_serving_level_ok is not true
+--AND (pc.server_1 != 'Null' OR pc.server_2 != 'Null')
+
+--RepID's Grouped by Date
+select to_char(tiel.entry_date, 'YYYY-MM-DD'), COUNT (to_char(tiel.entry_date, 'YYYY-MM-DD'))
+from job_instance  ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+join task_instance ti
+on ji.job_instance_id = ti.job_instance_id
+join task_instance_error_log tiel
+on ti.task_instance_id = tiel.task_id
+where ji.entry_date > (NOW() -  interval '3000 days')
+and file_name like ('%Read%')
+and tiel.exception_data like ('propertyName=receiverCustomerId, invalidValue=RepId:%')
+GROUP BY to_char(tiel.entry_date, 'YYYY-MM-DD')
+order by to_char(tiel.entry_date, 'YYYY-MM-DD')
+
+--Alarms by Category
+select aca.alarm_category_desc, ala.entry_date, swm.meter_serial_number, ala.radio_serial_number, swm.curr_mode, swm.status_desc, MAX (ish.entry_date) from alarm ala
+join alarm_categories ac 
+on ac.alarm_id = ala.alarm_id
+join alarm_category aca
+on ac.alarm_category_id = aca.alarm_category_id
+join smart_water_meter swm
+on swm.swm_id = ala.swm_id
+join item_status_history ish
+on ish.swm_id = swm.swm_id
+--where aca.alarm_category_desc in ('LOWBATTERY','TAMPER')
+where (aca.remedy_trigger_status = True)
+--and ish.new_value = swm.status_desc
+--and ish.old_value != 'Stale')
+group by aca.alarm_category_desc, ala.entry_date, swm.meter_serial_number, ala.radio_serial_number, swm.curr_mode, swm.status_desc, ish.entry_date
+
+--Not Properly commissionned
+select swm.meter_serial_number, lce.radio_serial_number, file_name from job_file jf
+join job_instance ji 
+on ji.job_file_id = jf.job_file_id
+join task_instance ti 
+on ti.job_instance_id = ji.job_instance_id
+left join item_status_history ish 
+on ish.task_id = ti.task_instance_id
+join smart_water_meter swm 
+on swm.swm_id = ish.swm_id
+join local_communication_endpoint lce
+on lce.lce_id = swm.lce_id
+and ish.new_value = 'Commissioned'
+and file_name like ('COMM%')
+
+--Count SWM ASN's
+select asn.serial_number, pc.part_type from asn_item asn
+join part_catalogue pc
+on pc.part_number = asn.part_number
+left join smart_water_meter swm
+on swm.meter_serial_number = asn.serial_number
+where pc.part_type != 'sjskjjhjdsfhjdfshdfsjhSWM'
+and swm.meter_serial_number is null
+order by asn.serial_number
+
+--Meters and Acceptance Files
+select swm.meter_serial_number, swm.previous_meter_serial_number, swm.status_desc, lce.radio_serial_number, lce.previous_radio_serial_number, lce.status_desc, asn.status_desc as ASN_STATUS, ti.entry_date, swm.latest_reading_date, jf.file_name from smart_water_meter swm
+left join local_communication_endpoint lce
+on swm.lce_id = lce.lce_id
+left join item_status_history ish
+on ish.swm_id = swm.swm_id
+left join task_instance ti
+on ish.task_id = ti.task_instance_id
+join job_instance ji on ti.job_instance_id = ji.job_instance_id
+join job_file jf on ji.job_file_id = jf.job_file_id
+left join asn_item asn
+on asn.serial_number = swm.meter_serial_number
+where swm.meter_serial_number in ('110132813','130106069','310008529','310009075','310009172','310010711','310010712','310010783','310014508','310014608','310014677','310014679','310015293','310015494','310016930','310017753','310029912','310037694','310051134','310058487','310058670','310063541','310065112','310066514','310076739','310113274','310127813','310256807','310282092','310282169','310284663','310332605','310351079','310372237','310372834','310377963','310404912','310476226')
+and ish.new_value = 'AcceptedTW'
+
+--MAX STUFF
+select swm.meter_serial_number, ish.entry_date, swm.latest_reading_date from smart_water_meter swm
+join (SELECT swm_id, MAX(entry_date) as entry_date FROM item_status_history WHERE new_value = 'Commissioned' GROUP by swm_id) as ish
+on swm.swm_id = ish.swm_id
+where status_desc = 'Commissioned'
+
+--Remedy Import Errors
+select ti.entry_date, ti.process_name, tiel.exception_data, tiel.payload_data from task_instance ti
+left join task_instance_error_log tiel
+on tiel.task_id = ti.task_instance_id
+where process_name like ('%remedy%')
+and status_desc = 'Done, w/Errors'
+order by ti.entry_date DESC
+
+--Meters affeted by a TG going dows
+select swm.meter_serial_number, lce.radio_serial_number, swm.status_desc, swm.curr_mode, swm.postcode, pc.postcode, pc.server_1, pc.server_2 from smart_water_meter swm
+join local_communication_endpoint lce
+on lce.lce_id = swm.lce_id
+join postcode_coverage pc
+on pc.postcode = swm.postcode 
+where pc.server_1 = 'THW_N100'
+
+--Multiple spaces in postcode
+select meter_serial_number, postcode from smart_water_meter 
+where length(replace(postcode, ' ', '')) < length(postcode) - 1
+
+select meter_serial_number, postcode from smart_water_meter 
+where postcode not like '% %'
+
+--Meter reads by period
+select entry_date, count(entry_date) from reading 
+where date_trunc('month',entry_date) = date_trunc('month',(now() - interval '0 month'))
+group by entry_date
+order by entry_date desc
+
+--CUFIS Device/meter relationship
+select meter_serial_number, cufis_serial_number, swm.curr_mode, swm.status_desc, swm.latest_reading_date from smart_water_meter swm
+join cufis_device cd
+on cd.cufis_id = swm.cufis_id
+where curr_mode = 'CUFIS'
+
+--Accepted History
+select swm.meter_serial_number, swm.curr_mode, swm.status_desc, file_name, ish.entry_date from job_file jf
+join job_instance ji on ji.job_file_id = jf.job_file_id
+join task_instance ti on ti.job_instance_id = ji.job_instance_id
+join item_status_history ish on ish.task_id = ti.task_instance_id
+join smart_water_meter swm on swm.swm_id = ish.swm_id
+and swm.meter_serial_number like '310531012'
+and ish.new_value = 'AcceptedTW' 
+order by file_name
+
+--Failed Commissioned Meters
+select split_part(payload_data, ',', 3) MSN, tiel.exception_data, payload_data, ji.entry_date, file_name,
+( SELECT max(ish.entry_date) AS max
+                   FROM item_status_history ish
+                  WHERE ish.swm_id = swm.swm_id AND ish.new_value::text = 'Commissioned'::text) AS commissioned_date 
+from job_instance  ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+join task_instance ti
+on ji.job_instance_id = ti.job_instance_id
+join task_instance_error_log tiel
+on ti.task_instance_id = tiel.task_id
+left join smart_water_meter swm
+on swm.meter_serial_number = split_part(payload_data, ',', 3)
+where (file_name like ('%COMM%')
+and payload_data like ('P%'))
+and tiel.payload_data like ('%310102684%')
+
+--Connection Mode details
+select swm.meter_serial_number, ish.new_value, ish.entry_date, jf.file_name from job_file jf
+join job_instance ji
+ON ji.job_file_id = jf.job_file_id
+JOIN task_instance ti 
+ON ti.job_instance_id = ji.job_instance_id
+JOIN item_status_history ish 
+ON ish.extracted_task_id = ti.task_instance_id
+join smart_water_meter swm
+on swm.swm_id = ish.swm_id
+where (ish.field_name::text = 'mode'::text
+and swm.meter_serial_number in ('310552206')
+and jf.file_name like ('%CON%'))
+order by ish.entry_date desc
+
+--Reads per hour on specific dates
+select entry_date, count (entry_date) from reading
+where to_char(entry_date, 'YYYY-MM-DD') = '2018-07-23'
+GROUP BY entry_date
+order by entry_date
+
+--Monthly KPI reading sum check Active Only
+select swm.meter_serial_number, swm.curr_mode, swm.status_desc, count (srd) from smart_water_meter swm
+join swm_kpi_previous kpi
+on kpi.swm_id = swm.swm_id
+left join sum_reading_date srd
+on srd.swm_id = swm.swm_id
+where (date_trunc('month',entry_date) = date_trunc('month',(now() - interval '1 month'))
+--and swm.status_desc = 'Active'
+and swm.curr_mode = 'AMI')
+--and swm.meter_serial_number in ('310023132'))
+group by swm.meter_serial_number, swm.curr_mode, swm.status_desc
+order by entry_date desc
+
+
+==================
+my Usefull
+
+--Meter State AcceptedTW changed before AcceptedARQ shared Meter status is active --
+select swm1.meter_serial_number,swm1.curr_mode,swm1.latest_reading_date,swm1.status_desc,swm1.lce_id,old_value,new_value,swm1.radio_serial_number from ( select swm.meter_serial_number,swm.swm_id,swm.curr_mode,swm.status_desc,swm.lce_id,swm.latest_reading_date,lce.radio_serial_number from
+            local_communication_endpoint lce,item_status_history ish left join
+            smart_water_meter swm
+            on ish.swm_id = swm.swm_id
+            where swm.lce_id=lce.lce_id
+            and (new_value = 'AcceptedTW'
+            and old_value != 'AcceptedARQ')
+            
+EXCEPT
+            select swm.meter_serial_number,swm.swm_id,swm.curr_mode,swm.status_desc,swm.lce_id,swm.latest_reading_date,lce.radio_serial_number from        local_communication_endpoint lce,item_status_history ish left join
+            smart_water_meter swm
+            on ish.swm_id = swm.swm_id
+            where swm.lce_id=lce.lce_id
+            and (new_value = 'AcceptedTW'
+            and old_value = 'AcceptedARQ' )
+) swm1
+left join item_status_history ish1 on ish1.swm_id = swm1.swm_id
+where new_value = 'AcceptedTW'
+and old_value != 'AcceptedARQ'
+and swm1.status_desc='Active'
+
+
+==================================================================
+--Current status AcceptedArq Meter Lce and Accepted Date--
+select distinct(swm.meter_serial_number),lce.radio_serial_number,max(ish.entry_date) as Accepted_Date
+ from smart_water_meter swm left join
+local_communication_endpoint lce 
+on swm.lce_id=lce.lce_id
+join item_status_history ish
+on ish.swm_id = swm.swm_id
+where swm.status_desc='AcceptedARQ'
+--where swm.status_desc='AcceptedARQ'
+and new_value = 'AcceptedARQ'
+group by swm.meter_serial_number,lce.radio_serial_number
+
+
+--Meter State AcceptedTW changed before AcceptedARQ--
+select distinct(swm1.meter_serial_number),ish1.entry_date,ish1.created_by,old_value,new_value 
+from (
+select swm.meter_serial_number,swm.swm_id from 
+item_status_history ish left join
+smart_water_meter swm
+on ish.swm_id = swm.swm_id
+where (new_value = 'AcceptedTW'
+and old_value != 'AcceptedARQ') 
+EXCEPT
+select swm.meter_serial_number,swm.swm_id from 
+ item_status_history ish left join
+smart_water_meter swm
+on ish.swm_id = swm.swm_id
+where (new_value = 'AcceptedTW'
+and old_value = 'AcceptedARQ') ) swm1
+ left join item_status_history ish1 on ish1.swm_id = swm1.swm_id
+where new_value = 'AcceptedTW'
+and old_value != 'AcceptedARQ' 
+
+
+
+------List Of Cufis File Failed IN BSS ------
+
+select jf.file_name from job_instance  ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+where jf.file_name like 'CUFISC%' 
+group by jf.file_name having count(jf.file_name)>1 
+order by jf.file_name desc;
+---Copy File from Above Query and paste in below 
+select ji.job_instance_id, jf.file_name, ji.status_desc, ji.entry_date from job_instance  ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+where jf.file_name in('CUFISC_20190627030001.csv', 'CUFISC_20190620030001.csv', 'CUFISC_20190616030001.csv', 
+'CUFISC_20190531030001.csv', 'CUFISC_20190530030001.csv', 'CUFISC_20190517030001.csv', 'CUFISC_20190508030001.csv', 
+'CUFISC_20190506030002.csv', 'CUFISC_20190503030001.csv', 'CUFISC_20190207030001.csv', 'CUFISC_20180406030001.csv', 
+'CUFISC_20171218030002.csv', 'CUFISC_20171212030001.csv', 'CUFISC_20171108030001.csv', 'CUFISC_20171003030002.csv', 
+'CUFISC_20170919030001.csv', 'CUFISC_20170915030001.csv', 'CUFISC_20170913030001.csv', 'CUFISC_20170316030001.csv', 
+'CUFISC_20170315030001.csv', 'CUFISC_20170314030001.csv', 'CUFISC_20170313030001.csv', 'CUFISC_20170312030001.csv', 
+'CUFISC_20170311030001.csv', 'CUFISC_20170310030001.csv')
+order by jf.file_name desc;
+
+
+==================================================================================================================================
+-----Monthly Actual meter reads and target reads------
+select swm.meter_serial_number, swm.reading_interval,swm.status_desc,swm.curr_mode, count(1), SUM (reading_count), SUM (reading_target) from sum_reading_date srd
+join smart_water_meter swm
+on swm.swm_id = srd.swm_id
+where
+srd.entry_date between '2019-12-01' and '2019-12-31'
+--date_trunc('month',entry_date) = date_trunc('month',(now() - interval '1 month'))
+and swm.curr_mode='AMI' and swm.status_desc='Active'
+--and swm.meter_serial_number in ('310003730','319006869')
+group by swm.meter_serial_number,swm.reading_interval,swm.status_desc,swm.curr_mode
+
+
+select distinct status_desc from smart_water_meter
+select entry_date, count(1), SUM (reading_count), SUM (reading_target) from sum_reading_date 
+where date_trunc('month',entry_date) = date_trunc('month',(now() - interval '1 month'))
+and swm_id = 2877439
+group by entry_date
+order by entry_date desc
+
+select entry_date, count(1), SUM (reading_count), SUM (reading_target) from sum_reading_date 
+where 
+--date_trunc('month',entry_date) = date_trunc('month',(now() - interval '1 month'))
+entry_date between '2020-03-03' and '2020-06-12'
+and swm_id = 3046579
+group by entry_date
+order by entry_date desc
+
+
+
+----------------
+----Total meter actual and target reads for meter which is accepted with acceptedarq-------------
+select swm.meter_serial_number, swm.reading_interval,swm.status_desc,swm.curr_mode, count(1), SUM (reading_count), SUM (reading_target) from sum_reading_date srd
+join smart_water_meter swm
+on swm.swm_id = srd.swm_id
+where swm.curr_mode='AMI' and swm.status_desc='Active'
+and swm.meter_serial_number in (
+select distinct(swm1.meter_serial_number) from ( select swm.meter_serial_number,swm.swm_id,swm.curr_mode,swm.status_desc,swm.lce_id,swm.latest_reading_date,lce.radio_serial_number from
+            local_communication_endpoint lce,item_status_history ish left join
+            smart_water_meter swm
+            on ish.swm_id = swm.swm_id
+            where swm.lce_id=lce.lce_id
+            and (new_value = 'AcceptedTW'
+            and old_value != 'AcceptedARQ')
+            
+EXCEPT
+            select swm.meter_serial_number,swm.swm_id,swm.curr_mode,swm.status_desc,swm.lce_id,swm.latest_reading_date,lce.radio_serial_number from        local_communication_endpoint lce,item_status_history ish left join
+            smart_water_meter swm
+            on ish.swm_id = swm.swm_id
+            where swm.lce_id=lce.lce_id
+            and (new_value = 'AcceptedTW'
+            and old_value = 'AcceptedARQ' )
+) swm1
+left join item_status_history ish1 on ish1.swm_id = swm1.swm_id
+where new_value = 'AcceptedTW'
+and old_value != 'AcceptedARQ'
+and swm1.status_desc='Active')
+group by swm.meter_serial_number,swm.reading_interval,swm.status_desc,swm.curr_mode
+
+===============================================================================
+------Commissioning Issue where meter have more than one lce------
+select swm_id from smart_water_meter where lce_id =(
+select lce_id from local_communication_endpoint where radio_serial_number = '14459794')
+
+select swm_id, meter_serial_number, lce_id from smart_water_meter where lce_id IN (
+select lce_id from smart_water_meter group by lce_id having count(lce_id)>1)
+order by swm_id, lce_id
+
+==================================================================================
+===============================================================================
+---KPI 1 2 3 4 5 6 Failure Meter List-----
+==================================================================
+select * from swm_kpi_previous where included_billing=true  --370115
+select * from swm_kpi_previous where included_billing=true and passed_billing=false  --237
+select * from swm_kpi_previous where included_daily=true and passed_daily=false  --15508
+select * from swm_kpi_previous where included_regular=true and passed_regular=false  --52581
+
+----BillingCustomer data KPI 1 Small-------
+select swm.meter_serial_number, lce.radio_serial_number from smart_water_meter swm
+left join local_communication_endpoint lce
+on swm.lce_id = lce.lce_id
+where swm.meter_serial_number in(
+select meter_serial_number from smart_water_meter where swm_id in(
+select swm_id from swm_kpi_previous where included_billing=true and passed_billing=false and size_bracket='Smaller'))
+
+--BillingCustomer data KPI 2 Larger ---
+select swm.meter_serial_number, lce.radio_serial_number from smart_water_meter swm
+left join local_communication_endpoint lce
+on swm.lce_id = lce.lce_id
+where swm.meter_serial_number in(
+select meter_serial_number from smart_water_meter where swm_id in(
+select swm_id from swm_kpi_previous where included_billing=true and passed_billing=false and size_bracket='Larger'))
+
+----KPI 3 DailyCustomer Small-------
+select swm.meter_serial_number, lce.radio_serial_number from smart_water_meter swm
+left join local_communication_endpoint lce
+on swm.lce_id = lce.lce_id
+where swm.meter_serial_number in(
+select meter_serial_number from smart_water_meter where swm_id in(
+select swm_id from swm_kpi_previous where included_daily=true and passed_daily=false and size_bracket='Smaller'))
+
+
+----KPI 4 DailyCustomer Small-------
+select swm.meter_serial_number, lce.radio_serial_number from smart_water_meter swm
+left join local_communication_endpoint lce
+on swm.lce_id = lce.lce_id
+where swm.meter_serial_number in(
+select meter_serial_number from smart_water_meter where swm_id in(
+select swm_id from swm_kpi_previous where included_daily=true and passed_daily=false and size_bracket='Larger'))
+
+
+--KPI 5--RegularCustomerSmall-------
+select swm.meter_serial_number, lce.radio_serial_number from smart_water_meter swm
+left join local_communication_endpoint lce
+on swm.lce_id = lce.lce_id
+where swm.meter_serial_number in(
+select meter_serial_number from smart_water_meter where swm_id in(
+select swm_id from swm_kpi_previous where included_regular=true and passed_regular=false and size_bracket='Smaller'))
+
+--KPI 6--RegularCustomerSmall-------
+select swm.meter_serial_number, lce.radio_serial_number from smart_water_meter swm
+left join local_communication_endpoint lce
+on swm.lce_id = lce.lce_id
+where swm.meter_serial_number in(
+select meter_serial_number from smart_water_meter where swm_id in(
+select swm_id from swm_kpi_previous where included_regular=true and passed_regular=false and size_bracket='Larger'))
+
+---
+select meter_serial_number from smart_water_meter where swm_id in(select swm_id from swm_kpi_previous where included_billing=true and passed_billing=false)
+
+select * from swm_kpi_previous limit 10
+
+select * from v_kpi_report_previous
+where borough = 'ALL' order by kpi_typ
+--68326 SWM_fl_no 
+-- swm_no - 370115
+
+==========================================================================================
+--Complete Meter Report -----
+select lce.radio_serial_number as LCE_ID,swm.meter_serial_number, 
+swm.curr_mode as Connection_Mode, swm.status_desc as Acceptance_Status, to_char(max(ish.entry_date), 'YYYY-MM-DD') as Accepted_Date ,
+case when swm.status_desc  = 'Stale' then to_char(max(ish1.entry_date), 'YYYY-MM-DD')
+else null end as Stale_Date 
+from smart_water_meter swm
+left join local_communication_endpoint lce on swm.lce_id = lce.lce_id
+left join item_status_history ish on swm.swm_id=ish.swm_id and ish.field_name = 'operational' and ish.new_value IN ('AcceptedARQ','AcceptedTW','Active')
+left join item_status_history ish1 on swm.swm_id=ish1.swm_id and ish1.field_name = 'operational' and ish1.new_value = 'Stale'
+--where swm.meter_serial_number in ('310216777')
+group by lce.radio_serial_number,swm.meter_serial_number,swm.curr_mode,swm.status_desc
+--order by Accepted_Date desc
+
+---AMI Metrs with AMI date in BSS--
+
+select lce.radio_serial_number as LCE_ID,swm.meter_serial_number, 
+swm.curr_mode, swm.status_desc, to_char(max(ish.entry_date), 'YYYY-MM-DD') as Ami_Date
+from smart_water_meter swm
+left join local_communication_endpoint lce on swm.lce_id = lce.lce_id
+left join item_status_history ish on swm.swm_id=ish.swm_id and ish.field_name = 'operational' and ish.new_value IN ('Commissioned','AcceptedARQ','AcceptedTW','Active')
+--left join item_status_history ish1 on swm.swm_id=ish1.swm_id and ish1.field_name = 'operational' and ish1.new_value = 'Stale'
+where swm.curr_mode='AMI'
+group by lce.radio_serial_number,swm.meter_serial_number,swm.curr_mode,swm.status_desc
+--order by Accepted_Date desc  
+
+
+select lce.radio_serial_number as LCE_ID,swm.meter_serial_number, 
+swm.curr_mode, swm.status_desc, to_char(max(ish.entry_date), 'YYYY-MM-DD') as Ami_Date
+from smart_water_meter swm
+left join local_communication_endpoint lce on swm.lce_id = lce.lce_id
+left join item_status_history ish on swm.swm_id=ish.swm_id
+where ish.new_value='AMI' and swm.curr_mode='AMI'
+group by lce.radio_serial_number,swm.meter_serial_number,swm.curr_mode,swm.status_desc
+
+
+-------------------------
+--Update Running Job----
+update job_instance set status_desc='Done' where job_instance_id ='145707'
+
+---------------------------------------------------------
+
+select * from smart_water_meter limit 10
+
+-- view item status history by a give meter serial number
+select 
+(select meter_serial_number from smart_water_meter where swm_id = ish.swm_id),
+(select radio_serial_number from local_communication_endpoint where lce_id = ish.lce_id), 
+ish.entry_date, 
+ish.created_by, 
+ish.field_name,
+ish.old_value,
+ish.new_value,
+ti.entry_date as "task_entry_date"
+from item_status_history ish
+left join task_instance ti
+on ish.task_id = ti.task_instance_id
+--where swm_id = (select swm_id from smart_water_meter where meter_serial_number = '310067066')
+where ish.new_value='AMR' and ish.created_by='postcode_coverage'
+order by ish.entry_date desc
+
+
+select * from asn_item asn 
+left join part_catalogue pc
+on pc.part_number =asn.part_number
+where asn.entry_date > '12-08-2020' and asn.entry_date < '20-08-2020'
+and pc.part_type='LCE'
+
+====Script
+
+-- view all error logs for a given job instance id for AMRAD Errors rather than warnings
+select * from task_instance_error_log where task_id in (select task_instance_id from task_instance where job_instance_id in 
+(select job_instance_id from job_instance ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+where ji.entry_date > (NOW() -  interval '50 days')
+and jf.file_name like 'po%'
+and status_desc = 'Done'
+))and exception_data like '%Scanner aborted%'
+order by exception_data
+
+s
+
+select * from task_instance_error_log where task_id in (select task_instance_id from task_instance where job_instance_id in 
+(select job_instance_id from job_instance ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+where ji.entry_date > (NOW() -  interval '50 days')
+and jf.file_name like 'po%'
+and status_desc = 'Done'
+))and exception_data like '%Scanner aborted%'
+order by exception_data
+
+
+select exception_data from task_instance_error_log where task_id in (select task_instance_id from task_instance where job_instance_id in 
+(select job_instance_id from job_instance ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+where ji.entry_date > (NOW() -  interval '100 days')
+and jf.file_name like 'COMM%'
+--and status_desc = 'Done'
+))and exception_data like '%bad SQL%'
+order by exception_data
+
+
+
+
+select exception_data INTO COMM_Exception from task_instance_error_log where task_id in (select task_instance_id from task_instance where job_instance_id in
+(select job_instance_id from job_instance ji
+join job_file jf
+on ji.job_file_id = jf.job_file_id
+where ji.entry_date > (NOW() -  interval '100 days')
+and jf.file_name like 'COMM%'
+and status_desc = 'Done'
+))and exception_data like '%bad SQL%'
+order by exception_data;
+
+            if(COMM_Exception is NOT NULL) THEN
+                                  --  RAISE NOTICE '% CUFIS C Still Running', StillRunning;
+                                     RAISE NOTICE '[SilentlyFailed]';
+            ELSE
+                                    --RAISE NOTICE '% CUFIS C Not Running', StillRunning;
+                                     RAISE NOTICE '[OK]';
+            END IF;
+END
+
+
+=======================
+
+CSR Commands
+CSR COmmands:
+keytool -certreq -alias  [certificate alias] -keystore [keystore file that will hold the certificate] -storepass [keystore password] -file [name of the csr file] ;related server1 url],DNS:[related server2 url]
+
+keytool -certreq -alias  name-fuse -keystore name.jks -storepass [keystore password] -file name.csr -ext SAN=DNS:server name,DNS:servername,DNS:servername,DNS:server,DNS:srver
+
+keytool -list -v -storepass Passw0rd -storepass Passw0rd -keystore  name.jks
+keytool -delete -alias nameofcert -storepass Passw0rd -keystore name.jks
+keytool -import -alias nameofcert  -file name.cer -storepass Passw0rd -keystore  name.jks
+keytool -importkeystore -srckeystore name.jks -destkeystore name -srcstoretype jks -deststoretype pkcs12
+
+
+
+
+
+Vuew JKS Detail:
+keytool -list -v -keystore name.jks
+
+View CSR::
+openssl req -text -noout -verify -in CSR.csr.
+
+
